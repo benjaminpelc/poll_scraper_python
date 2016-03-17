@@ -19,9 +19,55 @@ def get_soup(url):
 def ge_poll_tables():
     return soup.find_all("table", class_="wikitable sortable collapsible")[0:2]
 
+# is_poll_row
+# returns true if the table row contains eleven 'td' elements
+def is_poll_row(row):
+    return len(row.find_all("td")) == 11
+
+# parse_poll_date
+# parse the poll date from the poll row
+def parse_poll_date(row):
+    return { 'start_date' : "",
+             'end_date' : "" }
+
+# parse_pollster
+# parse the pollster information from the poll row
+def parse_pollster(row):
+    return "YouGov"
+
+# parse_client
+# parse the name of the organisation that commissioned the poll
+def parse_client(row):
+    return "Daily Telegraph"
+
+# parse_scores
+# return a dictionary containing the scores of the individual parties
+def parse_scores(row):
+    return { 'con' : 41,
+             'lab' : 27,
+             'ukip' : 9,
+             'ld' : 4,
+             'snp' : 3,
+             'green' : 2,
+             'other' : 1}
+
+# parse_poll_row
+def parse_poll_row(row):
+    scores = parse_scores(row)
+    return { 'start_date' : parse_poll_date(row)['start_date'],
+             'end_date' : parse_poll_date(row)['end_date'],
+             'pollster' : parse_pollster(row),
+             'client' : parse_client(row),
+             'con' : scores['con'],
+             'lab' : scores['lab'],
+             'ukip' :  scores['ukip'],
+             'ld' :  scores['ld'],
+             'snp' :  scores['snp'],
+             'green' :  scores['green'],
+             'other' :  scores['other']}
+
 # Get current year
 this_year = dt.now().year
-
 soup = get_soup(polls_url)
 tables = ge_poll_tables()
 
@@ -33,7 +79,7 @@ print(this_year)
 for tab in tables:
     rows = tab.find_all("tr")
     for row in rows:
-        print(row)
-        print()
-    # print(tab)
+        if is_poll_row(row):
+            print(parse_poll_row(row))
+            print()
 
