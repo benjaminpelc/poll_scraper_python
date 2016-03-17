@@ -16,7 +16,6 @@ def get_soup(url):
     with urllib.request.urlopen(polls_url) as url:
         r = url.read()
         url.close()
-
     return BeautifulSoup(r, 'lxml')
 
 # ge_poll_tables
@@ -32,10 +31,11 @@ def is_poll_row(row):
 
 # month_string_to_number
 def month_string_to_number(month_str):
-    months = { 'Jan' : 1, 'Feb' : 2, 'Mar' : 3, 'Apr' : 4,
+    return {
+               'Jan' : 1, 'Feb' : 2, 'Mar' : 3, 'Apr' : 4,
                'May' : 5, 'Jun' : 6, 'Jul' : 7, 'Aug' : 8,
-               'Sep' : 9, 'Oct' : 10, 'Nov' : 11, 'Dec' : 12 }
-    return months[month_str]
+               'Sep' : 9, 'Oct' : 10, 'Nov' : 11, 'Dec' : 12
+           }[month_str]
 
 def date_format_1(row, year):
     date_string = row[0].get_text()
@@ -51,8 +51,10 @@ def date_format_1(row, year):
         start_date = dt.date(year, month, int(start_day_str))
         end_date = dt.date(year, month, int(end_day_str))
 
-        dates = { 'start_date' : start_date, 'end_date' : end_date }
-        return dates
+        return {
+                    'start_date' : start_date,
+                    'end_date' : start_date
+               }
     else:
         return None
 
@@ -67,26 +69,32 @@ def date_format_3(row, year):
 
         start_date = dt.date(year, month, int(start_day_str))
 
-        dates = { 'start_date' : start_date, 'end_date' : start_date }
-        return dates
+        return {
+                    'start_date' : start_date,
+                    'end_date' : start_date
+               }
     else:
         return None
 
 # parse_poll_date
 # parse the poll date from the poll row
 def parse_poll_date(row, year):
-    # date_format_1(row, year)
-
-    # if
-    return date_format_1(row, year) or date_format_3(row, year) or { 'start_date' : "", 'end_date' : "" }
+    return (
+                date_format_1(row, year) or
+                date_format_3(row, year) or
+                { 'start_date' : "", 'end_date' : "" }
+            )
 
 # parse_pollster_client_string
-# get the pollster and the client from the polllster/client string
+# get the pollster and the client from the pollster/client string
 def parse_pollster_client_string(row):
     pollster_client_string = row[1].get_text()
-    groups = re.search(r"^(\w+)\/{0,1}(.*)", pollster_client_string)
-    return { 'pollster' : groups.group(1),
-             'client' : groups.group(2) }
+    search_regex = r"^(\w+)\/{0,1}(.*)"
+    groups = re.search(search_regex, pollster_client_string)
+    return {
+               'pollster' : groups.group(1),
+               'client' : groups.group(2)
+           }
 
 # parse_pollster
 # parse the pollster information from the poll row
@@ -111,6 +119,10 @@ def parse_sample(row):
     sample_size_text = row[2].get_text()
     return strip_number_commas(sample_size_text)
 
+# round_float_string_to_int
+def round_float_string_to_int(float_str):
+    return int(round(float(float_str)))
+
 # parse_score_number
 # get an integer from the score % string
 def parse_score_number(elem):
@@ -119,64 +131,72 @@ def parse_score_number(elem):
     if score_text == '*':
         return None
     groups = re.search(search_regex, score_text)
-    return int(round(float(groups.group(1))))
+    return round_float_string_to_int(groups.group(1))
 
 # parse_scores
 # return a dictionary containing the scores of the individual parties
 def parse_scores(row):
-    return { 'con' : parse_score_number(row[3]),
-             'lab' : parse_score_number(row[4]),
-             'ukip' : parse_score_number(row[5]),
-             'ld' : parse_score_number(row[6]),
-             'snp' : parse_score_number(row[7]),
-             'green' : parse_score_number(row[8]),
-             'other' : parse_score_number(row[9])}
+    return {
+                'con' : parse_score_number(row[3]),
+                'lab' : parse_score_number(row[4]),
+                'ukip' : parse_score_number(row[5]),
+                'ld' : parse_score_number(row[6]),
+                'snp' : parse_score_number(row[7]),
+                'green' : parse_score_number(row[8]),
+                'other' : parse_score_number(row[9])
+            }
 
 # parse_poll_row
 def parse_poll_row(row, year):
     scores = parse_scores(row)
-    return { 'start_date' : parse_poll_date(row, year)['start_date'],
-             'end_date' : parse_poll_date(row, year)['end_date'],
-             'pollster' : parse_pollster(row),
-             'client' : parse_client(row),
-             'sample' : parse_sample(row),
-             'con' : scores['con'],
-             'lab' : scores['lab'],
-             'ukip' :  scores['ukip'],
-             'ld' :  scores['ld'],
-             'snp' :  scores['snp'],
-             'green' :  scores['green'],
-             'other' :  scores['other']}
+    return {
+                'start_date' : parse_poll_date(row, year)['start_date'],
+                'end_date' : parse_poll_date(row, year)['end_date'],
+                'pollster' : parse_pollster(row),
+                'client' : parse_client(row),
+                'sample' : parse_sample(row),
+                'con' : scores['con'],
+                'lab' : scores['lab'],
+                'ukip' :  scores['ukip'],
+                'ld' :  scores['ld'],
+                'snp' :  scores['snp'],
+                'green' :  scores['green'],
+                'other' :  scores['other']
+             }
 
+# poll_list_to_dataframe
+# return a pandas dataframe from a list of poll dictionaries.
+def poll_list_to_dataframe(raw_list):
+    return pd.DataFrame.from_records(polls, index='start_date')[[
+                    'end_date' , 'pollster', 'client', 'sample',
+                     'con', 'lab', 'ukip', 'ld', 'snp', 'green',
+                     'other'
+                     ]]
+
+# Do some scraping and put in  a Pandas dataframe.
 # Get current year
-this_year = dt.datetime.now().year
 soup = get_soup(polls_url)
 tables = ge_poll_tables()
-
-# print(tables[0])
-# print(tables[1])
-print(this_year)
 
 # Loop through each poll results table
 table_counter = 0
 polls = []
+this_year = dt.datetime.now().year
 for tab in tables:
     year = this_year - table_counter
     rows = tab.find_all("tr")
     for row in rows:
         if is_poll_row(row):
             row_elems = row.find_all('td')
-            poll = (parse_poll_row(row_elems, year))
+            poll = parse_poll_row(row_elems, year)
             polls.append(poll)
+    # increment the table counter so year can be adjusted
     table_counter += 1
 
-print(polls)
+polls_df = poll_list_to_dataframe(polls)
 
-polls_df = pd.DataFrame.from_records(polls, index='start_date')[['end_date' , 'pollster', 'client', 'sample',
-                     'con', 'lab', 'ukip', 'ld', 'snp', 'green', 'other' ]]
 polls_df.to_csv('polls.csv')
-
-print(polls_df.head())
+print(polls_df.head(15))
 
 # just_scores = polls_df[[ 'con', 'lab', 'ukip', 'ld', 'snp', 'green', 'other' ]]
 # just_scores.plot()
