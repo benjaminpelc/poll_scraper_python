@@ -31,15 +31,24 @@ def parse_poll_date(row):
     return { 'start_date' : "",
              'end_date' : "" }
 
+# parse_pollster_client_string
+# get the pollster and the client from the polllster/client string
+def parse_pollster_client_string(row):
+    pollster_client_string = row[1].get_text()
+    print(pollster_client_string)
+    groups = re.search(r"^(\w+)\/{0,1}(.*)", pollster_client_string)
+    return { 'pollster' : groups.group(1),
+             'client' : groups.group(2) }
+
 # parse_pollster
 # parse the pollster information from the poll row
 def parse_pollster(row):
-    return "YouGov"
+    return parse_pollster_client_string(row)['pollster']
 
 # parse_client
 # parse the name of the organisation that commissioned the poll
 def parse_client(row):
-    return "Daily Telegraph"
+    return parse_pollster_client_string(row)['client']
 
 # strip_number_commas
 # remove commas from number strings.
@@ -56,11 +65,12 @@ def parse_sample(row):
 
 # parse_score_number
 # get an integer from the score % string
+#
+# Clean this up
 def parse_score_number(elem):
     score_text = elem.get_text()
     if score_text == '*':
         return None
-    print(score_text)
     groups = re.search(r"(^\d{1,2}\.*\d*)\%.*$", score_text)
     return float(groups.group(1))
 
