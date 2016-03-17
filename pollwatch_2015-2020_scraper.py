@@ -40,6 +40,19 @@ def parse_pollster(row):
 def parse_client(row):
     return "Daily Telegraph"
 
+# strip_number_commas
+# remove commas from number strings.
+# e.g.
+# strip_number_commas("1,234,567") = 1234567
+def strip_number_commas(num_str):
+    return int(num_str.replace(',', ''))
+
+# parse_sample
+# parse the sample size from the poll row html
+def parse_sample(row):
+    sample_size_text = row[2].get_text()
+    return strip_number_commas(sample_size_text)
+
 # parse_scores
 # return a dictionary containing the scores of the individual parties
 def parse_scores(row):
@@ -58,6 +71,7 @@ def parse_poll_row(row):
              'end_date' : parse_poll_date(row)['end_date'],
              'pollster' : parse_pollster(row),
              'client' : parse_client(row),
+             'sample' : parse_sample(row),
              'con' : scores['con'],
              'lab' : scores['lab'],
              'ukip' :  scores['ukip'],
@@ -80,6 +94,7 @@ for tab in tables:
     rows = tab.find_all("tr")
     for row in rows:
         if is_poll_row(row):
-            print(parse_poll_row(row))
+            row_elems = row.find_all('td')
+            print(parse_poll_row(row_elems))
             print()
 
