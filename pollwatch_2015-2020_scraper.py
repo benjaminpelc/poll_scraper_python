@@ -3,6 +3,10 @@ import datetime as dt
 import urllib
 import re
 import pandas as pd
+import matplotlib.pyplot as plt
+
+from matplotlib import style
+style.use('ggplot')
 
 polls_url = 'http://en.wikipedia.org/wiki/Opinion_polling_for_the_next_United_Kingdom_general_election'
 
@@ -109,14 +113,13 @@ def parse_sample(row):
 
 # parse_score_number
 # get an integer from the score % string
-#
-# Clean this up
 def parse_score_number(elem):
     score_text = elem.get_text()
+    search_regex = r"(^\d{1,2}\.*\d*)\%.*$"
     if score_text == '*':
         return None
-    groups = re.search(r"(^\d{1,2}\.*\d*)\%.*$", score_text)
-    return float(groups.group(1))
+    groups = re.search(search_regex, score_text)
+    return int(round(float(groups.group(1))))
 
 # parse_scores
 # return a dictionary containing the scores of the individual parties
@@ -169,9 +172,13 @@ for tab in tables:
 
 print(polls)
 
-polls_df = pd.DataFrame.from_records(polls, index='start_date')
-polls_df = polls_df[['end_date' , 'pollster', 'client', 'sample',
+polls_df = pd.DataFrame.from_records(polls, index='start_date')[['end_date' , 'pollster', 'client', 'sample',
                      'con', 'lab', 'ukip', 'ld', 'snp', 'green', 'other' ]]
 polls_df.to_csv('polls.csv')
+
 print(polls_df.head())
+
+# just_scores = polls_df[[ 'con', 'lab', 'ukip', 'ld', 'snp', 'green', 'other' ]]
+# just_scores.plot()
+# plt.show()
 
