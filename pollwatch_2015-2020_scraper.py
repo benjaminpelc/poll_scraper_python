@@ -2,6 +2,7 @@ from bs4 import BeautifulSoup
 import datetime as dt
 import urllib
 import re
+import pandas as pd
 
 polls_url = 'http://en.wikipedia.org/wiki/Opinion_polling_for_the_next_United_Kingdom_general_election'
 
@@ -155,12 +156,22 @@ print(this_year)
 
 # Loop through each poll results table
 table_counter = 0
+polls = []
 for tab in tables:
     year = this_year - table_counter
     rows = tab.find_all("tr")
     for row in rows:
         if is_poll_row(row):
             row_elems = row.find_all('td')
-            print(parse_poll_row(row_elems, year))
-            print()
+            poll = (parse_poll_row(row_elems, year))
+            polls.append(poll)
     table_counter += 1
+
+print(polls)
+
+polls_df = pd.DataFrame.from_records(polls, index='start_date')
+polls_df = polls_df[['end_date' , 'pollster', 'client', 'sample',
+                     'con', 'lab', 'ukip', 'ld', 'snp', 'green', 'other' ]]
+polls_df.to_csv('polls.csv')
+print(polls_df.head())
+
