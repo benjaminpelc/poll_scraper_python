@@ -1,6 +1,7 @@
 from bs4 import BeautifulSoup
 from datetime import datetime as dt
 import urllib
+import re
 
 polls_url = 'http://en.wikipedia.org/wiki/Opinion_polling_for_the_next_United_Kingdom_general_election'
 
@@ -53,16 +54,26 @@ def parse_sample(row):
     sample_size_text = row[2].get_text()
     return strip_number_commas(sample_size_text)
 
+# parse_score_number
+# get an integer from the score % string
+def parse_score_number(elem):
+    score_text = elem.get_text()
+    if score_text == '*':
+        return None
+    print(score_text)
+    groups = re.search(r"(^\d{1,2}\.*\d*)\%.*$", score_text)
+    return float(groups.group(1))
+
 # parse_scores
 # return a dictionary containing the scores of the individual parties
 def parse_scores(row):
-    return { 'con' : 41,
-             'lab' : 27,
-             'ukip' : 9,
-             'ld' : 4,
-             'snp' : 3,
-             'green' : 2,
-             'other' : 1}
+    return { 'con' : parse_score_number(row[3]),
+             'lab' : parse_score_number(row[4]),
+             'ukip' : parse_score_number(row[5]),
+             'ld' : parse_score_number(row[6]),
+             'snp' : parse_score_number(row[7]),
+             'green' : parse_score_number(row[8]),
+             'other' : parse_score_number(row[9])}
 
 # parse_poll_row
 def parse_poll_row(row):
