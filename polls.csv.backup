@@ -1,8 +1,4 @@
 startDate,endDate,pollster,client,sample,con,lab,ukip,ldem,snp,grn,other
-2016-04-13,2016-04-13,ComRes,Sunday Mirror/Independent on Sunday,2036,35,30,16,8,5,4,1.0
-2016-04-11,2016-04-11,YouGov,The Times,1639,31,34,17,8,7,3,
-2016-03-29,2016-03-29,Opinium,Observer,1966,33,32,17,5,6,4,2.0
-2016-03-24,2016-03-24,BMG,,1298,36,31,16,7,5,5,2.0
 2016-03-19,2016-03-19,Ipsos MORI,,1023,36,34,11,10,5,3,2.0
 2016-03-18,2016-03-18,ComRes,Daily Mail,1002,37,35,9,7,5,4,2.0
 2016-03-16,2016-03-16,YouGov,The Times,1691,33,34,16,6,6,3,2.0

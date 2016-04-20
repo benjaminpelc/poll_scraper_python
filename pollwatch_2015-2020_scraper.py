@@ -1,3 +1,5 @@
+#! /usr/bin/env python
+
 from bs4 import BeautifulSoup
 import datetime as dt
 import urllib
@@ -51,12 +53,42 @@ def date_format_1(row, year):
         start_date = dt.date(year, month, int(start_day_str))
         end_date = dt.date(year, month, int(end_day_str))
 
+        start_date = start_date.isoformat()
+        end_date = end_date.isoformat()
+
         return {
                     'start_date' : start_date,
                     'end_date' : start_date
                }
     else:
         return None
+
+def date_format_2(row, year):
+    date_string = row[0].get_text()
+    regex = r"(\d{1,2})\s(\w{3})\w*.*(\d{1,2})\s(\w{3})"
+    search_results = re.search(regex, date_string)
+    if (search_results):
+        start_day_str = search_results.group(1)
+        end_day_str = search_results.group(3)
+        start_month_str = search_results.group(2)
+        end_month_str = search_results.group(4)
+
+        start_month = month_string_to_number(start_month_str)
+        end_month = month_string_to_number(end_month_str)
+
+        start_date = dt.date(year, start_month, int(start_day_str))
+        end_date = dt.date(year, end_month, int(end_day_str))
+
+        start_date = start_date.isoformat()
+        end_date = end_date.isoformat()
+
+        return {
+                    'start_date' : start_date,
+                    'end_date' : start_date
+               }
+    else:
+        return None
+
 
 def date_format_3(row, year):
     date_string = row[0].get_text()
@@ -68,6 +100,7 @@ def date_format_3(row, year):
         month = month_string_to_number(month_str)
 
         start_date = dt.date(year, month, int(start_day_str))
+        start_date = start_date.isoformat()
 
         return {
                     'start_date' : start_date,
@@ -81,6 +114,7 @@ def date_format_3(row, year):
 def parse_poll_date(row, year):
     return (
                 date_format_1(row, year) or
+                date_format_2(row, year) or
                 date_format_3(row, year) or
                 { 'start_date' : "", 'end_date' : "" }
             )
@@ -89,11 +123,11 @@ def parse_poll_date(row, year):
 # get the pollster and the client from the pollster/client string
 def parse_pollster_client_string(row):
     pollster_client_string = row[1].get_text()
-    search_regex = r"^(\w+)\/{0,1}(.*)"
+    search_regex = r"^([a-zA-Z ]+)\/{0,1}(.*)"
     groups = re.search(search_regex, pollster_client_string)
     return {
                'pollster' : groups.group(1),
-               'client' : groups.group(2)
+               'client' : groups.group(2).replace(", ", "/")
            }
 
 # parse_pollster
@@ -128,8 +162,11 @@ def round_float_string_to_int(float_str):
 def parse_score_number(elem):
     score_text = elem.get_text()
     search_regex = r"(^\d{1,2}\.*\d*)\%.*$"
-    if score_text == '*':
+
+    # check for edge cases where a score may not be present.
+    if score_text == '*' or score_text == '-':
         return None
+
     groups = re.search(search_regex, score_text)
     return round_float_string_to_int(groups.group(1))
 
@@ -140,9 +177,9 @@ def parse_scores(row):
                 'con' : parse_score_number(row[3]),
                 'lab' : parse_score_number(row[4]),
                 'ukip' : parse_score_number(row[5]),
-                'ld' : parse_score_number(row[6]),
+                'ldem' : parse_score_number(row[6]),
                 'snp' : parse_score_number(row[7]),
-                'green' : parse_score_number(row[8]),
+                'grn' : parse_score_number(row[8]),
                 'other' : parse_score_number(row[9])
             }
 
@@ -150,26 +187,26 @@ def parse_scores(row):
 def parse_poll_row(row, year):
     scores = parse_scores(row)
     return {
-                'start_date' : parse_poll_date(row, year)['start_date'],
-                'end_date' : parse_poll_date(row, year)['end_date'],
+                'startDate' : parse_poll_date(row, year)['start_date'],
+                'endDate' : parse_poll_date(row, year)['end_date'],
                 'pollster' : parse_pollster(row),
                 'client' : parse_client(row),
                 'sample' : parse_sample(row),
                 'con' : scores['con'],
                 'lab' : scores['lab'],
                 'ukip' :  scores['ukip'],
-                'ld' :  scores['ld'],
+                'ldem' :  scores['ldem'],
                 'snp' :  scores['snp'],
-                'green' :  scores['green'],
+                'grn' :  scores['grn'],
                 'other' :  scores['other']
              }
 
 # poll_list_to_dataframe
 # return a pandas dataframe from a list of poll dictionaries.
 def poll_list_to_dataframe(raw_list):
-    return pd.DataFrame.from_records(polls, index='start_date')[[
-                    'end_date' , 'pollster', 'client', 'sample',
-                     'con', 'lab', 'ukip', 'ld', 'snp', 'green',
+    return pd.DataFrame.from_records(polls, index='startDate')[[
+                    'endDate' , 'pollster', 'client', 'sample',
+                     'con', 'lab', 'ukip', 'ldem', 'snp', 'grn',
                      'other'
                      ]]
 
@@ -196,9 +233,9 @@ for tab in tables:
 polls_df = poll_list_to_dataframe(polls)
 
 polls_df.to_csv('polls.csv')
+polls_df.to_json('polls.json', orient='records')
 print(polls_df.head(15))
 
-# just_scores = polls_df[[ 'con', 'lab', 'ukip', 'ld', 'snp', 'green', 'other' ]]
+# just_scores = polls_df[[ 'con', 'lab', 'ukip', 'ldem', 'snp', 'grn', 'other' ]]
 # just_scores.plot()
 # plt.show()
-
